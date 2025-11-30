@@ -1,0 +1,44 @@
+---
+title: "p8105_hw6_sx2402"
+author: "Eric Xu"
+date: "2025-11-28"
+output: html_document
+---
+```{r setup, include=FALSE}
+library(tidyverse)
+library(knitr)
+library(p8105.datasets)
+```
+
+## Problem 1
+
+### 1. Import and prepare data
+
+```{r}
+homicide_data =
+  read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/refs/heads/master/homicide-data.csv") |>
+  janitor::clean_names()
+
+homicide_summary = homicide_data |>
+  mutate(
+    city_state = str_c(city, ", ", state)
+  ) |>
+  group_by(city_state) |>
+  summarize(
+    total = n(),
+    unsolved = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))
+  )
+```
+
+
+## Problem 2
+```{r}
+data("weather_df")
+```
+
+
+## Problem 3
+```{r}
+brithweight_data = read.csv("birthweight.csv")
+```
+
