@@ -58,7 +58,7 @@ baltimore_fit =
 baltimore_results = baltimore_fit |>
   tidy(conf.int = TRUE, exponentiate = TRUE) |>
   filter(term == "victim_sexMale") |> mutate(adjusted_OR = estimate)|> 
-  select(adjusted_OR, estimate, conf.low, conf.high)
+  select(adjusted_OR, conf.low, conf.high)
 
 kable(baltimore_results)
 ```
