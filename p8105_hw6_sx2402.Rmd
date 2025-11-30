@@ -57,8 +57,8 @@ baltimore_fit =
 
 baltimore_results = baltimore_fit |>
   tidy(conf.int = TRUE, exponentiate = TRUE) |>
-  filter(term == "victim_sexMale") |>
-  select(term, estimate, conf.low, conf.high)
+  filter(term == "victim_sexMale") |> mutate(adjusted_OR = estimate)|> 
+  select(adjusted_OR, estimate, conf.low, conf.high)
 
 kable(baltimore_results)
 ```
@@ -122,7 +122,6 @@ A half of the cities have a wide confidence interval including the null value. T
 
 ## Problem 2
 
----
 
 ```{r P2, cache = TRUE}
 data("weather_df")
