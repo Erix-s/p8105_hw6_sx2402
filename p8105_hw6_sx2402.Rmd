@@ -2,7 +2,7 @@
 title: "p8105_hw6_sx2402"
 author: "Eric Xu"
 date: "2025-11-28"
-output: html_document
+output: github_document
 ---
 ```{r setup, include=FALSE}
 library(tidyverse)
@@ -15,7 +15,6 @@ library(modelr)
 
 ## Problem 1
 
----
 
 ### 1. Import and prepare data
 
@@ -261,4 +260,4 @@ cv_results |> ggplot(aes(x = model, y = rmse)) + geom_violin()
 
 kable(cv_summary, digits = 3)
 ```
-Model 1 have a relatively low RMSE distribution, compared to other model. However, model 1 does not account for interaction terms and has more estimators compared to model 2. Model 3 is more complex with full interaction terms but does not improve prediction and is seemingly over-fit. Overall, model 1 would be the better pick.
+<!-- Model 1 have a relatively low RMSE distribution, compared to other model. However, model 1 does not account for interaction terms and has more estimators compared to model 2. Model 3 is more complex with full interaction terms but does not improve prediction and is seemingly over-fit. Overall, model 1 would be the better pick. -->
