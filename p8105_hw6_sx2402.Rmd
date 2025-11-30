@@ -117,13 +117,70 @@ city_plot = city_results |>
 city_plot
 ```
 
+Comment:
+A half of the cities have a wide confidence interval including the null value. This suggests not enough evidence of male victims having higher odds of resolved cases compared to female after adjusting for race and age. Other cities showing a significance usually have a odds ratio smaller than 1. This shows that in these cities, it is statistically significant that male victims have lower odds of resolved cases compared to female after adjusting for race and age. The lower OR estimates are more stable with lower SE and narrow CI.
 
 ## Problem 2
 
 ---
 
-```{r P2}
+```{r P2, cache = TRUE}
 data("weather_df")
+
+boot_df = weather_df |>
+  drop_na(tmax, tmin, prcp) |> 
+  modelr::bootstrap(n = 5000) |>
+  mutate(
+    models = map(strap, \(df) lm(tmax ~ tmin + prcp, data = df) ),
+    results = map(models, tidy),
+    glance = map(models, glance)) |> 
+  select(-strap, -models) |> 
+  unnest(results, names_sep = "_") |>
+  unnest(glance, names_sep = "_")
+
+boot_results = boot_df |> group_by(.id,results_term) |> 
+  mutate(
+    r2 = glance_r.squared
+  ) |> 
+  select(results_term,results_estimate,r2,.id) |> 
+    pivot_wider(
+    names_from = results_term,
+    values_from = results_estimate
+  ) |>
+  mutate(
+    beta_ratio = tmin / prcp
+  )
+
+boot_plot = boot_results |>
+  select(r2, beta_ratio,.id) |>
+  pivot_longer(
+    cols = c(r2, beta_ratio),
+    names_to = "estimate",
+    values_to = "value"
+  )
+boot_plot |> 
+  ggplot(aes(x = value)) +
+  geom_density(fill = "steelblue", alpha = 0.5) +
+  facet_wrap(vars(estimate),scales = "free") +
+  theme_minimal() +
+  labs(
+    title = "Bootstrap Distributions",
+    x = "Estimate",
+    y = "Density"
+  )
+
+```
+
+Both r squared and beta quotient in plot are slightly left skewed distribution. While it is unimodal and approximately symmetric, this suggests that the bootstrap procedure is stable and that the statistics behave regularly under repeated sampling.
+
+```{r P2.1, cache = TRUE}
+boot_ci = boot_plot |>
+  group_by(estimate) |> 
+  summarize(
+    ci_lower = quantile(value, 0.025),
+    ci_upper = quantile(value, 0.975)
+  )
+kable(boot_ci, digits = 3)
 ```
 
 
