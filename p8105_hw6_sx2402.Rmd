@@ -10,6 +10,7 @@ library(knitr)
 library(p8105.datasets)
 library(broom)
 library(purrr)
+library(modelr)
 ```
 
 ## Problem 1
@@ -106,7 +107,7 @@ city_plot = city_results |>
   geom_errorbar(aes(xmin = conf.low, xmax = conf.high)) +
   geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
   labs(
-    title = "Adjusted OR: Male vs Female Victim",
+    title = "OR of resolved case: Male vs Female Victim",
     x = "Adjusted OR",
     y = NULL
   ) +
@@ -185,7 +186,79 @@ kable(boot_ci, digits = 3)
 
 
 ## Problem 3
-```{r}
-brithweight_data = read.csv("birthweight.csv")
+```{r P3.1}
+birthweight_data = read.csv("birthweight.csv") |> 
+  janitor::clean_names() |>
+  mutate(
+    babysex = factor(babysex, labels = c("Male", "Female")),
+    frace = factor(frace,
+                   levels = c(1,2,3,4,8,9),
+                   labels = c("White","Black","Asian","Puerto Rican","Other","Unknown")),
+    mrace = factor(mrace,
+                   levels = c(1,2,3,4,8),
+                   labels = c("White","Black","Asian","Puerto Rican","Other")),
+    malform = factor(malform, labels = c("Absent","Present"))
+    ) |> drop_na()
 ```
 
+Now use a data-driven model-building process that models the birth weight from the fetal growth perspective that including the fetal status only.
+
+```{r P3.2}
+model1 = birthweight_data |> lm(
+bwt ~ bhead + blength + gaweeks + babysex,data = _)
+
+summary(model1)
+
+birthweight_resid = birthweight_data |>
+  add_predictions(model1) |>
+  add_residuals(model1)
+
+birthweight_resid |>
+ggplot(aes(x = pred, y = resid)) +
+geom_point(alpha = 0.4) +
+geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+theme_minimal() +
+labs(
+title = "Residuals vs Fitted Values for Model 1",
+x = "Fitted Values",
+y = "Residuals"
+)
+```
+The residuals are centered around zero with slight curvature with low fitted value. 
+Variability has no obvious change at higher fitted values, and seemingly no major violations of linearity.
+
+```{r P3.3,cache = TRUE}
+
+cv_df =
+  crossv_mc(birthweight_data, 100) |>
+  mutate(
+    train = map(train, as_tibble),
+    test  = map(test,  as_tibble),
+    fit_1 = map(train, ~ lm(bwt ~ bhead + blength + gaweeks + babysex, data = .x)),
+    fit_2 = map(train, ~ lm(bwt ~ blength + gaweeks, data = .x)),
+    fit_3 = map(train, ~ lm(bwt ~ bhead * blength * babysex, data = .x)),
+    rmse_1 = map2_dbl(fit_1, test, ~ rmse(model = .x, data = .y)),
+    rmse_2 = map2_dbl(fit_2, test, ~ rmse(model = .x, data = .y)),
+    rmse_3 = map2_dbl(fit_3, test, ~ rmse(model = .x, data = .y))
+)
+
+
+cv_results = cv_df |>
+  select(starts_with("rmse")) |>
+  pivot_longer(everything(),
+               names_to = "model",
+               values_to = "rmse")
+
+cv_summary = cv_results |>
+  group_by(model) |>
+  summarize(
+    mean_rmse = mean(rmse),
+    sd_rmse   = sd(rmse)
+    )
+
+cv_results |> ggplot(aes(x = model, y = rmse)) + geom_violin()
+
+
+kable(cv_summary, digits = 3)
+```
+Model 1 have a relatively low RMSE distribution, compared to other model. However, model 1 does not account for interaction terms and has more estimators compared to model 2. Model 3 is more complex with full interaction terms but does not improve prediction and is seemingly over-fit. Overall, model 1 would be the better pick.

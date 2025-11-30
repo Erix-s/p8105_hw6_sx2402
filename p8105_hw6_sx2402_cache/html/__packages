@@ -11,3 +11,4 @@ lubridate
 knitr
 p8105.datasets
 broom
+modelr
