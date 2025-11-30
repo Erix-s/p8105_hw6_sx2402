@@ -15,7 +15,6 @@ library(modelr)
 
 ## Problem 1
 
-
 ### 1. Import and prepare data
 
 ```{r P1.1, message = FALSE}
@@ -43,7 +42,7 @@ homicide_df = homicide_raw |>
   )
 ```
 
-Fit logistic regression on Baltimore data.
+### 2. Fit logistic regression on Baltimore data.
 
 ```{r P1.2}
 baltimore_df = homicide_df |>
@@ -63,7 +62,8 @@ baltimore_results = baltimore_fit |>
 kable(baltimore_results)
 ```
 
-Fit for city in one pipeline
+### 3. Fit for city in one pipeline
+
 ```{r P1.3, warning = FALSE}
 city_results = homicide_df |>
   group_by(city_state) |>
@@ -98,7 +98,8 @@ city_results = homicide_df |>
 kable(city_results)
 ```
 
-Plotting the adjusted odds ratios.
+### 4. Plotting the adjusted odds ratios.
+
 ```{r P1.4, fig_height = 12, fig.width=7}
 city_plot = city_results |> 
   ggplot(aes(x = adjusted_OR, y = fct_reorder(city_state, adjusted_OR)))+
@@ -122,6 +123,7 @@ A half of the cities have a wide confidence interval including the null value. T
 
 ## Problem 2
 
+### 1. Import and prepare data
 
 ```{r P2, cache = TRUE}
 data("weather_df")
@@ -172,6 +174,8 @@ boot_plot |>
 
 Both r squared and beta quotient in plot are slightly left skewed distribution. While it is unimodal and approximately symmetric, this suggests that the bootstrap procedure is stable and that the statistics behave regularly under repeated sampling.
 
+### 2. Bootstraping summary
+
 ```{r P2.1, cache = TRUE}
 boot_ci = boot_plot |>
   group_by(estimate) |> 
@@ -184,6 +188,9 @@ kable(boot_ci, digits = 3)
 
 
 ## Problem 3
+
+### 1. Import and prepare data
+
 ```{r P3.1}
 birthweight_data = read.csv("birthweight.csv") |> 
   janitor::clean_names() |>
@@ -199,7 +206,8 @@ birthweight_data = read.csv("birthweight.csv") |>
     ) |> drop_na()
 ```
 
-Now use a data-driven model-building process that models the birth weight from the fetal growth perspective that including the fetal status only.
+
+### 2. Model 1
 
 ```{r P3.2}
 model1 = birthweight_data |> lm(
@@ -222,8 +230,12 @@ x = "Fitted Values",
 y = "Residuals"
 )
 ```
+
+This model use a data-driven model-building process that models the birth weight from the fetal growth perspective that including the fetal status only.
 The residuals are centered around zero with slight curvature with low fitted value. 
 Variability has no obvious change at higher fitted values, and seemingly no major violations of linearity.
+
+### 3. Cross validation
 
 ```{r P3.3}
 
@@ -259,4 +271,5 @@ cv_results |> ggplot(aes(x = model, y = rmse)) + geom_violin()
 
 kable(cv_summary, digits = 3)
 ```
-<!-- Model 1 have a relatively low RMSE distribution, compared to other model. However, model 1 does not account for interaction terms and has more estimators compared to model 2. Model 3 is more complex with full interaction terms but does not improve prediction and is seemingly over-fit. Overall, model 1 would be the better pick. -->
+
+Model 1 have a relatively low RMSE distribution, compared to other model. However, model 1 does not account for interaction terms and has more estimators compared to model 2. Model 3 is more complex with full interaction terms but does not improve prediction and is seemingly over-fit. Overall, model 1 would be the better pick.
