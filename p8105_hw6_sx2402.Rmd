@@ -8,31 +8,121 @@ output: html_document
 library(tidyverse)
 library(knitr)
 library(p8105.datasets)
+library(broom)
+library(purrr)
 ```
 
 ## Problem 1
 
+---
+
 ### 1. Import and prepare data
 
-```{r}
-homicide_data =
-  read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/refs/heads/master/homicide-data.csv") |>
-  janitor::clean_names()
+```{r P1.1, message = FALSE}
+homicide_raw = read_csv(
+  "https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv"
+)
 
-homicide_summary = homicide_data |>
+homicide_df = homicide_raw |>
+  janitor::clean_names() |>
   mutate(
-    city_state = str_c(city, ", ", state)
+    city_state = str_c(city, ", ", state),
+    resolved = if_else(disposition == "Closed by arrest", 1, 0),
+    resolved = as.numeric(resolved),
+    victim_age = case_when(victim_age == "Unknown" ~ NA, .default = victim_age),
+    victim_age = as.numeric(victim_age),
+    victim_race = fct_relevel(victim_race, "White")
   ) |>
-  group_by(city_state) |>
-  summarize(
-    total = n(),
-    unsolved = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))
+  filter(
+    !city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL"),
+    victim_race %in% c("White", "Black")
+  ) |>
+  mutate(
+    victim_sex = fct_relevel(victim_sex, "Female"),
+    victim_race = fct_relevel(victim_race, "White")
   )
+```
+
+Fit logistic regression on Baltimore data.
+
+```{r P1.2}
+baltimore_df = homicide_df |>
+  filter(city_state == "Baltimore, MD")
+
+baltimore_fit = 
+  baltimore_df |> 
+  glm(resolved ~ victim_age + victim_race + victim_sex, data = _, family = binomial()) 
+
+
+
+baltimore_results = baltimore_fit |>
+  tidy(conf.int = TRUE, exponentiate = TRUE) |>
+  filter(term == "victim_sexMale") |>
+  select(term, estimate, conf.low, conf.high)
+
+kable(baltimore_results)
+```
+
+Fit for city in one pipeline
+```{r P1.3, warning = FALSE}
+city_results = homicide_df |>
+  group_by(city_state) |>
+  nest() |>
+  mutate(
+    model = map(
+      data, 
+      ~ glm(
+          resolved ~ victim_age + victim_race + victim_sex,
+          data = .x,
+          family = binomial()
+        )
+    )
+    ) |> 
+  mutate(
+    tidy = map(
+      model,
+      ~ tidy(.x, conf.int = TRUE, exponentiate = TRUE)
+    )
+  ) |> 
+  unnest(tidy) |> 
+  filter(term == "victim_sexMale") |>
+    mutate(
+    adjusted_OR = estimate
+  ) |> 
+  select(
+    city_state,
+    adjusted_OR,
+    conf.low, 
+    conf.high
+  )
+kable(city_results)
+```
+
+Plotting the adjusted odds ratios.
+```{r P1.4, fig_height = 12, fig.width=7}
+city_plot = city_results |> 
+  ggplot(aes(x = adjusted_OR, y = fct_reorder(city_state, adjusted_OR)))+
+  geom_point() +
+  geom_errorbar(aes(xmin = conf.low, xmax = conf.high)) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
+  labs(
+    title = "Adjusted OR: Male vs Female Victim",
+    x = "Adjusted OR",
+    y = NULL
+  ) +
+  theme_minimal()+
+  theme(
+    axis.text.y = element_text(size = 6)
+  )
+city_plot
 ```
 
 
 ## Problem 2
-```{r}
+
+---
+
+```{r P2}
 data("weather_df")
 ```
 
