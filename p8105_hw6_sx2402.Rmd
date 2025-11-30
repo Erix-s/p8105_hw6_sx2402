@@ -227,7 +227,7 @@ y = "Residuals"
 The residuals are centered around zero with slight curvature with low fitted value. 
 Variability has no obvious change at higher fitted values, and seemingly no major violations of linearity.
 
-```{r P3.3,cache = TRUE}
+```{r P3.3}
 
 cv_df =
   crossv_mc(birthweight_data, 100) |>
